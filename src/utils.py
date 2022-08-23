@@ -721,10 +721,12 @@ def visualize_goals_2D(mapping, goals_2D, scores: np.ndarray, future_frame_num, 
 
 
 def load_model(model, state_dict, prefix=''):
+    # 其实就是def load_state_dict: https://pytorch.org/docs/stable/_modules/torch/nn/modules/module.html#Module.load_state_dict, 删除了一些东西
+    # 并且可以改变prefix, 原本的load_state_dict没有这个input parameter
     missing_keys = []
     unexpected_keys = []
     error_msgs = []
-    # copy state_dict so _load_from_state_dict can modify it
+    # copy state_dict so _load_from_state_dict can modify it 浅拷贝
     metadata = getattr(state_dict, '_metadata', None)
     state_dict = state_dict.copy()
     if metadata is not None:
@@ -733,9 +735,11 @@ def load_model(model, state_dict, prefix=''):
     def load(module, prefix=''):
         local_metadata = {} if metadata is None else metadata.get(
             prefix[:-1], {})
+        # https://pytorch.org/docs/stable/_modules/torch/nn/modules/module.html#Module.load_state_dict 详解
+        # load_state_dict 会调用_load_from_state_dict
         module._load_from_state_dict(
             state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs)
-        for name, child in module._modules.items():
+        for name, child in module._modules.items(): # 迭代往下load，保证每次子模块的state_dict都能加载到
             if child is not None:
                 load(child, prefix + name + '.')
 
